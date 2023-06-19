@@ -81,6 +81,7 @@ static struct option original_opts[] = {
 	{.name = "goto",          .has_arg = 1, .val = 'g'},
 	{.name = "ipv4",          .has_arg = 0, .val = '4'},
 	{.name = "ipv6",          .has_arg = 0, .val = '6'},
+    {.name = "bpf",           .has_arg = 0, .val = 'b'},
 	{NULL},
 };
 
@@ -677,12 +678,12 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xtables_args args = {
 		.family = AF_INET,
 	};
-	struct ipt_entry *e = NULL;
-	unsigned int nsaddrs = 0, ndaddrs = 0;
-	struct in_addr *saddrs = NULL, *smasks = NULL;
-	struct in_addr *daddrs = NULL, *dmasks = NULL;
-	int verbose = 0;
-	int wait = 0;
+    struct ipt_entry *e = NULL;
+    unsigned int nsaddrs = 0, ndaddrs = 0;
+    struct in_addr *saddrs = NULL, *smasks = NULL;
+    struct in_addr *daddrs = NULL, *dmasks = NULL;
+    int verbose = 0;
+    int wait = 0;
 	const char *chain = NULL;
 	const char *policy = NULL, *newname = NULL;
 	unsigned int rulenum = 0, command = 0;
@@ -711,11 +712,11 @@ int do_command4(int argc, char *argv[], char **table,
 
 	/* only allocate handle if we weren't called with a handle */
 	if (!*handle)
-		*handle = iptc_init(*table);
+		*handle = iptc_init(*table, cs.options&OPT_BPF);
 
 	/* try to insmod the module if iptc_init failed */
 	if (!*handle && xtables_load_ko(xtables_modprobe_program, false) != -1)
-		*handle = iptc_init(*table);
+		*handle = iptc_init(*table, cs.options&OPT_BPF);
 
 	if (!*handle)
 		xtables_error(VERSION_PROBLEM,

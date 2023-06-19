@@ -37,6 +37,10 @@
 #include <xtables.h>
 #include <libiptc/xtcshared.h>
 
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+#include <bpfilter/bpfilter.h>
+#endif
+
 #include "linux_list.h"
 
 //#define IPTC_DEBUG2 1
@@ -133,6 +137,7 @@ struct xtc_handle {
 	struct chain_head *chain_iterator_cur;
 	struct rule_head *rule_iterator_cur;
 
+    bool use_bpf;
 	unsigned int num_chains;         /* number of user defined chains */
 
 	struct chain_head **chain_index;   /* array for fast chain list access*/
@@ -1302,13 +1307,14 @@ out_free_handle:
 
 
 struct xtc_handle *
-TC_INIT(const char *tablename)
+TC_INIT(const char *tablename, int use_bpf)
 {
 	struct xtc_handle *h;
 	STRUCT_GETINFO info;
 	unsigned int tmp;
 	socklen_t s;
 	int sockfd;
+    int ret;
 
 retry:
 	iptc_fn = TC_INIT;
@@ -1331,12 +1337,18 @@ retry:
 	s = sizeof(info);
 
 	strcpy(info.name, tablename);
-	if (getsockopt(sockfd, TC_IPPROTO, SO_GET_INFO, &info, &s) < 0) {
-		close(sockfd);
-		return NULL;
-	}
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+    if (use_bpf)
+        ret = bf_ipt_get_info(&info);
+    else
+#endif
+        ret = getsockopt(sockfd, TC_IPPROTO, SO_GET_INFO, &info, &s);
+    if (ret < 0) {
+        close(sockfd);
+        return NULL;
+    }
 
-	DEBUGP("valid_hooks=0x%08x, num_entries=%u, size=%u\n",
+    DEBUGP("valid_hooks=0x%08x, num_entries=%u, size=%u\n",
 		info.valid_hooks, info.num_entries, info.size);
 
 	h = alloc_handle(&info);
@@ -1353,9 +1365,16 @@ retry:
 
 	tmp = sizeof(STRUCT_GET_ENTRIES) + h->info.size;
 
-	if (getsockopt(h->sockfd, TC_IPPROTO, SO_GET_ENTRIES, h->entries,
-		       &tmp) < 0)
-		goto error;
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+    if (use_bpf) {
+        ret = bf_ipt_get_entries(h->entries);
+        if (ret == 0)
+            tmp = (sizeof(STRUCT_GET_ENTRIES) + h->entries->size);
+    } else
+#endif
+        ret = getsockopt(h->sockfd, TC_IPPROTO, SO_GET_ENTRIES, h->entries,
+            &tmp);
+    if (ret < 0) goto error;
 
 #ifdef IPTC_DEBUG2
 	{
@@ -1367,6 +1386,8 @@ retry:
 		}
 	}
 #endif
+
+    h->use_bpf = use_bpf;
 
 	if (parse_table(h) < 0)
 		goto error;
@@ -2044,7 +2065,7 @@ int TC_CHECK_ENTRY(const IPT_CHAINLABEL chain, const STRUCT_ENTRY *origfw,
 int TC_DELETE_ENTRY(const IPT_CHAINLABEL chain,	const STRUCT_ENTRY *origfw,
 		    unsigned char *matchmask, struct xtc_handle *handle)
 {
-	return delete_entry(chain, origfw, matchmask, handle, false);
+    return delete_entry(chain, origfw, matchmask, handle, false);
 }
 
 /* Delete the rule in position `rulenum' in `chain'. */
@@ -2056,7 +2077,7 @@ TC_DELETE_NUM_ENTRY(const IPT_CHAINLABEL chain,
 	struct chain_head *c;
 	struct rule_head *r;
 
-	iptc_fn = TC_DELETE_NUM_ENTRY;
+    iptc_fn = TC_DELETE_NUM_ENTRY;
 
 	if (!(c = iptcc_find_label(chain, handle))) {
 		errno = ENOENT;
@@ -2596,8 +2617,13 @@ TC_COMMIT(struct xtc_handle *handle)
 	}
 #endif
 
-	ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_REPLACE, repl,
-			 sizeof(*repl) + repl->size);
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+    if (handle->use_bpf)
+        ret = bf_ipt_replace(repl);
+    else
+#endif
+    ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_REPLACE, repl,
+                     sizeof(*repl) + repl->size);
 	if (ret < 0)
 		goto out_free_newcounters;
 
@@ -2672,8 +2698,13 @@ TC_COMMIT(struct xtc_handle *handle)
 	}
 #endif
 
-	ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_ADD_COUNTERS,
-			 newcounters, counterlen);
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+    if (handle->use_bpf)
+        ret = bf_ipt_add_counters(newcounters);
+    else
+#endif
+    ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_ADD_COUNTERS,
+                        newcounters, counterlen);
 	if (ret < 0)
 		goto out_free_newcounters;
 

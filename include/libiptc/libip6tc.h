@@ -24,7 +24,7 @@
 int ip6tc_is_chain(const char *chain, struct xtc_handle *const handle);
 
 /* Take a snapshot of the rules. Returns NULL on error. */
-struct xtc_handle *ip6tc_init(const char *tablename);
+struct xtc_handle *ip6tc_init(const char *tablename, int use_bpf);
 
 /* Cleanup after ip6tc_init(). */
 void ip6tc_free(struct xtc_handle *h);

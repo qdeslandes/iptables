@@ -42,6 +42,7 @@ enum {
 	OPT_LOGICALOUT	= 1 << 19,
 	OPT_COMMAND	= 1 << 20,
 	OPT_ZERO	= 1 << 21,
+    OPT_BPF     = 1 << 22,
 };
 
 enum {

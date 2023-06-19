@@ -7,7 +7,7 @@ struct xt_counters;
 
 struct xtc_ops {
 	int (*commit)(struct xtc_handle *);
-	struct xtc_handle *(*init)(const char *);
+	struct xtc_handle *(*init)(const char *, int);
 	void (*free)(struct xtc_handle *);
 	int (*builtin)(const char *, struct xtc_handle *const);
 	int (*is_chain)(const char *, struct xtc_handle *const);

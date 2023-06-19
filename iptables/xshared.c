@@ -1743,11 +1743,16 @@ void do_parse(int argc, char *argv[],
 			xtables_modprobe_program = optarg;
 			break;
 
-		case 'c':
-			set_option(&cs->options, OPT_COUNTERS, &args->invflags,
-				   invert);
-			args->pcnt = optarg;
-			args->bcnt = strchr(args->pcnt + 1, ',');
+        case 'b':
+            set_option(&cs->options, OPT_BPF, &args->invflags,
+                       invert);
+            break;
+
+        case 'c':
+            set_option(&cs->options, OPT_COUNTERS, &args->invflags,
+                       invert);
+            args->pcnt = optarg;
+            args->bcnt = strchr(args->pcnt + 1, ',');
 			if (args->bcnt)
 			    args->bcnt++;
 			if (!args->bcnt && xs_has_arg(argc, argv))
@@ -1876,6 +1881,17 @@ void do_parse(int argc, char *argv[],
 					   p->chain);
 		}
 	}
+
+#ifdef ENABLE_BPFILTER
+    if (args->family == AF_INET6 && cs->options & OPT_BPF)
+        xtables_error(PARAMETER_PROBLEM,
+                "--bpf is not yet supported with IPv6");
+#else
+    if (cs->options&OPT_BPF)
+        xtables_error(PARAMETER_PROBLEM,
+                      "bpfilter support was disabled during build");
+#endif
+
 }
 
 void ipv4_proto_parse(struct iptables_command_state *cs,

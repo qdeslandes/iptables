@@ -28,7 +28,7 @@ extern "C" {
 int iptc_is_chain(const char *chain, struct xtc_handle *const handle);
 
 /* Take a snapshot of the rules.  Returns NULL on error. */
-struct xtc_handle *iptc_init(const char *tablename);
+struct xtc_handle *iptc_init(const char *tablename, int use_bpf);
 
 /* Cleanup after iptc_init(). */
 void iptc_free(struct xtc_handle *h);
