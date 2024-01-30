@@ -50,6 +50,7 @@ enum {
 	OPT_LIST_C	= 1 << 20,
 	OPT_LIST_X	= 1 << 21,
 	OPT_LIST_MAC2	= 1 << 22,
+	OPT_BPF		= 1 << 23,
 };
 #define NUMBER_OF_OPT	24
 

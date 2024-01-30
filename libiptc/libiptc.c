@@ -37,6 +37,10 @@
 #include <xtables.h>
 #include <libiptc/xtcshared.h>
 
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+#include <bpfilter/bpfilter.h>
+#endif
+
 #include "linux_list.h"
 
 //#define IPTC_DEBUG2 1
@@ -133,6 +137,7 @@ struct xtc_handle {
 	struct chain_head *chain_iterator_cur;
 	struct rule_head *rule_iterator_cur;
 
+	bool use_bpf;
 	unsigned int num_chains;         /* number of user defined chains */
 
 	struct chain_head **chain_index;   /* array for fast chain list access*/
@@ -1302,13 +1307,14 @@ out_free_handle:
 
 
 struct xtc_handle *
-TC_INIT(const char *tablename)
+TC_INIT(const char *tablename, int use_bpf)
 {
 	struct xtc_handle *h;
 	STRUCT_GETINFO info;
 	unsigned int tmp;
 	socklen_t s;
 	int sockfd;
+	int ret;
 
 retry:
 	iptc_fn = TC_INIT;
@@ -1325,7 +1331,13 @@ retry:
 	s = sizeof(info);
 
 	strcpy(info.name, tablename);
-	if (getsockopt(sockfd, TC_IPPROTO, SO_GET_INFO, &info, &s) < 0) {
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+	if (use_bpf)
+		ret = bf_ipt_get_info(&info);
+	else
+#endif
+	ret = getsockopt(sockfd, TC_IPPROTO, SO_GET_INFO, &info, &s);
+	if (ret < 0) {
 		close(sockfd);
 		return NULL;
 	}
@@ -1347,8 +1359,17 @@ retry:
 
 	tmp = sizeof(STRUCT_GET_ENTRIES) + h->info.size;
 
-	if (getsockopt(h->sockfd, TC_IPPROTO, SO_GET_ENTRIES, h->entries,
-		       &tmp) < 0)
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+	if (use_bpf)
+	{
+		ret = bf_ipt_get_entries(h->entries);
+		if (ret == 0)
+			tmp = (sizeof(STRUCT_GET_ENTRIES) + h->entries->size);
+	}
+	else
+#endif
+	ret = getsockopt(h->sockfd, TC_IPPROTO, SO_GET_ENTRIES, h->entries, &tmp);
+	if (ret < 0)
 		goto error;
 
 #ifdef IPTC_DEBUG2
@@ -1361,6 +1382,8 @@ retry:
 		}
 	}
 #endif
+
+	h->use_bpf = use_bpf;
 
 	if (parse_table(h) < 0)
 		goto error;
@@ -2594,6 +2617,11 @@ TC_COMMIT(struct xtc_handle *handle)
 	}
 #endif
 
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+	if (handle->use_bpf)
+		ret = bf_ipt_replace(repl);
+	else
+#endif
 	ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_REPLACE, repl,
 			 sizeof(*repl) + repl->size);
 	if (ret < 0)
@@ -2670,6 +2698,11 @@ TC_COMMIT(struct xtc_handle *handle)
 	}
 #endif
 
+#if defined(ENABLE_BPFILTER) && !defined(_LIBIP6TC_H)
+	if (handle->use_bpf)
+		ret = bf_ipt_add_counters(newcounters);
+	else
+#endif
 	ret = setsockopt(handle->sockfd, TC_IPPROTO, SO_SET_ADD_COUNTERS,
 			 newcounters, counterlen);
 	if (ret < 0)

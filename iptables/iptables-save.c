@@ -78,10 +78,10 @@ static int do_output(struct iptables_save_cb *cb, const char *tablename)
 	if (!tablename)
 		return for_each_table(&do_output, cb);
 
-	h = cb->ops->init(tablename);
+	h = cb->ops->init(tablename, 0);
 	if (h == NULL) {
 		xtables_load_ko(xtables_modprobe_program, false);
-		h = cb->ops->init(tablename);
+		h = cb->ops->init(tablename, 0);
 	}
 	if (!h)
 		xtables_error(OTHER_PROBLEM, "Cannot initialize: %s",

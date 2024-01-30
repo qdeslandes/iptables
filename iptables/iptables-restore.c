@@ -69,12 +69,12 @@ create_handle(const struct iptables_restore_cb *cb, const char *tablename)
 {
 	struct xtc_handle *handle;
 
-	handle = cb->ops->init(tablename);
+	handle = cb->ops->init(tablename, 0);
 
 	if (!handle) {
 		/* try to insmod the module if iptc_init failed */
 		xtables_load_ko(xtables_modprobe_program, false);
-		handle = cb->ops->init(tablename);
+		handle = cb->ops->init(tablename, 0);
 	}
 
 	if (!handle)

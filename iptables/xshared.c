@@ -962,6 +962,7 @@ static const unsigned int options_v_commands[NUMBER_OF_OPT] = {
 /*OPT_LIST_C*/		CMD_LIST,
 /*OPT_LIST_X*/		CMD_LIST,
 /*OPT_LIST_MAC2*/	CMD_LIST,
+/*OPT_BPF*/			CMD_INSERT | CMD_DELETE | CMD_REPLACE | CMD_CHANGE_COUNTERS | CMD_LIST,
 };
 #undef CMD_IDRAC
 
@@ -998,6 +999,7 @@ const char *ip46t_option_name(int option)
 	case OPT_LINENUMBERS:	return "--line-numbers";
 	case OPT_COUNTERS:	return "--set-counters";
 	case OPT_FRAGMENT:	return "--fragments";
+	case OPT_BPF:		return "--bpf";
 	default:		return "unknown option";
 	}
 }
@@ -1875,6 +1877,11 @@ void do_parse(int argc, char *argv[],
 			xtables_modprobe_program = optarg;
 			break;
 
+		case 'b':
+			set_option(p->ops, &cs->options, OPT_BPF, &args->invflags,
+					   invert);
+			break;
+
 		case 'c':
 			set_option(p->ops, &cs->options, OPT_COUNTERS,
 				   &args->invflags, invert);
@@ -2001,6 +2008,16 @@ void do_parse(int argc, char *argv[],
 			option_test_and_reject(p, cs, OPT_LOGICALIN);
 		}
 	}
+
+#ifdef ENABLE_BPFILTER
+	if (args->family == AF_INET6 && cs->options & OPT_BPF)
+		xtables_error(PARAMETER_PROBLEM,
+					  "--bpf is not yet supported with IPv6");
+#else
+	if (cs->options & OPT_BPF)
+		xtables_error(PARAMETER_PROBLEM,
+					  "bpfilter support was disabled during build");
+#endif
 }
 
 void ipv4_proto_parse(struct iptables_command_state *cs,
