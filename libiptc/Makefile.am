@@ -4,6 +4,11 @@ AM_CFLAGS        = ${regular_CFLAGS}
 AM_CPPFLAGS      = ${regular_CPPFLAGS} -I${top_builddir}/include -I${top_srcdir}/include ${kinclude_CPPFLAGS}
 AM_LDFLAGS       = ${regular_LDFLAGS}
 
+if ENABLE_BPFILTER
+AM_CFLAGS  += ${bpfilter_CFLAGS} -DENABLE_BPFILTER
+AM_LDFLAGS += ${bpfilter_LIBS}
+endif
+
 pkgconfig_DATA      = libiptc.pc libip4tc.pc libip6tc.pc
 
 lib_LTLIBRARIES     = libip4tc.la libip6tc.la

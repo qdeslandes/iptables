@@ -54,6 +54,9 @@ AC_ARG_ENABLE([libipq],
 AC_ARG_ENABLE([bpf-compiler],
 	AS_HELP_STRING([--enable-bpf-compiler], [Build bpf compiler]),
 	[enable_bpfc="$enableval"], [enable_bpfc="no"])
+AC_ARG_ENABLE([bpfilter],
+	AS_HELP_STRING([--enable-bpfilter], [Build with support for bpfilter]),
+	[enable_bpfilter="$enableval"], [enable_bpfilter="no"])
 AC_ARG_ENABLE([nfsynproxy],
 	AS_HELP_STRING([--enable-nfsynproxy], [Build SYNPROXY configuration tool]),
 	[enable_nfsynproxy="$enableval"], [enable_nfsynproxy="no"])
@@ -109,6 +112,7 @@ AM_CONDITIONAL([ENABLE_LARGEFILE], [test "$enable_largefile" = "yes"])
 AM_CONDITIONAL([ENABLE_DEVEL], [test "$enable_devel" = "yes"])
 AM_CONDITIONAL([ENABLE_LIBIPQ], [test "$enable_libipq" = "yes"])
 AM_CONDITIONAL([ENABLE_BPFC], [test "$enable_bpfc" = "yes"])
+AM_CONDITIONAL([ENABLE_BPFILTER], [test "$enable_bpfilter" = "yes"])
 AM_CONDITIONAL([ENABLE_SYNCONF], [test "$enable_nfsynproxy" = "yes"])
 AM_CONDITIONAL([ENABLE_NFTABLES], [test "$enable_nftables" = "yes"])
 AM_CONDITIONAL([ENABLE_CONNLABEL], [test "$enable_connlabel" = "yes"])
@@ -120,6 +124,11 @@ AM_CONDITIONAL([HAVE_LIBNFNETLINK], [test "$nfnetlink" = 1])
 if test "x$enable_bpfc" = "xyes" || test "x$enable_nfsynproxy" = "xyes"; then
 	PKG_CHECK_MODULES([libpcap], [libpcap], [], [
 		AC_MSG_ERROR(missing libpcap library required by bpf compiler or nfsynproxy tool)])
+fi
+
+if test "x$enable_bpfilter" = "xyes"; then
+	PKG_CHECK_MODULES([bpfilter], [bpfilter], [], [
+		AC_MSG_ERROR(missing bpfilter library required for bpfilter support)])
 fi
 
 if test "x$enable_nftables" = "xyes"; then
@@ -257,6 +266,7 @@ Iptables Configuration:
   IPQ support:				${enable_libipq}
   Large file support:			${enable_largefile}
   BPF utils support:			${enable_bpfc}
+  bpfilter support:			${enable_bpfilter}
   nfsynproxy util support:		${enable_nfsynproxy}
   nftables support:			${enable_nftables}
   connlabel support:			${enable_connlabel}

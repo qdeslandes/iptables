@@ -34,6 +34,10 @@ xtables_legacy_multi_SOURCES += ip6tables-standalone.c ip6tables.c ip6tables-mul
 xtables_legacy_multi_CFLAGS  += -DENABLE_IPV6
 xtables_legacy_multi_LDADD   += ../libiptc/libip6tc.la ../extensions/libext6.a
 endif
+if ENABLE_BPFILTER
+xtables_legacy_multi_CFLAGS += -DENABLE_BPFILTER
+xtables_legacy_multi_LDADD  += ${bpfilter_LIBS}
+endif
 
 # iptables using nf_tables api
 if ENABLE_NFTABLES
